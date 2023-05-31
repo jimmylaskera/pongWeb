@@ -15,7 +15,7 @@
 <body>
   <canvas id="gameCanvas" width="800" height="600"></canvas>
   <script src="/socket.io/socket.io.js"></script>
-  <script >
+  <script>
     let side = null;
 
     function chooseSide() {
@@ -35,11 +35,24 @@
     const ctx = canvas.getContext('2d');
     const socket = io();
 
+    // Paddle dimensions, position
     const paddleHeight = 100;
     const paddleWidth = 10;
-
     let leftPaddleY = (canvas.height - paddleHeight) / 2;
     let rightPaddleY = (canvas.height - paddleHeight) / 2;
+
+    // Ball dimensions, position
+    let ballSize = 10;
+    let ballX = (canvas.width - ballSize) / 2;
+    let ballY = (canvas.height - ballSize) / 2;
+
+    // Score
+    let scoreP1 = 0;
+    let scoreP2 = 0;
+    let gameStart = false;
+    let gameOver = false;
+
+    socket.on('start', response => gameStart = response);
 
     socket.on('updatePaddle', (data) => {
       if (data.player === 'left') {
@@ -48,6 +61,156 @@
         rightPaddleY = data.y;
       }
     });
+
+    let isGoingDown = true;
+    let isGoingRight = true;
+
+    function ballPos() {
+      switch(ballY) {
+        case (canvas.height-ballSize):
+          isGoingDown = false;
+          break;
+        case (0):
+          isGoingDown = true;
+          break;
+        default: break;
+      }
+
+      switch(ballX) {
+        case (canvas.width-ballSize):
+          scoreP1++;
+          ballX = (canvas.width - ballSize) / 2;
+          ballY = (canvas.height - ballSize) / 2;
+          isGoingRight = true;
+          isGoingDown = true;
+          break;
+        case (0):
+          scoreP2++;
+          ballX = (canvas.width - ballSize) / 2;
+          ballY = (canvas.height - ballSize) / 2;
+          isGoingRight = true;
+          isGoingDown = true;
+          break;
+        case (paddleWidth):
+          isGoingRight = ballY >= leftPaddleY && ballY <= leftPaddleY+100 ? true : isGoingRight;
+          break;
+        case (canvas.width-(ballSize + paddleWidth)):
+          isGoingRight = ballY >= rightPaddleY && ballY <= rightPaddleY+100 ? false : isGoingRight;
+          break;
+        default: break;
+      }
+
+      if (scoreP1 === 3 || scoreP2 === 3) {
+        gameOver = true;
+        ballSize = 0;
+      } else {
+        isGoingRight ? ballX++ : ballX--;
+        isGoingDown ? ballY++ : ballY--;
+      }
+    }
+
+    function drawScores() {
+      switch(scoreP1) {
+        case 0:
+          ctx.fillRect(100, 50, 30, 10);
+          ctx.fillRect(100, 60, 10, 30);
+          ctx.fillRect(120, 60, 10, 30);
+          ctx.fillRect(100, 90, 30, 10);
+          break;
+        case 1:
+          ctx.fillRect(110, 50, 20, 10);
+          ctx.fillRect(120, 60, 10, 40);
+          break;
+        case 2:
+          ctx.fillRect(100, 50, 30, 10);
+          ctx.fillRect(120, 60, 10, 20);
+          ctx.fillRect(100, 70, 20, 10);
+          ctx.fillRect(100, 80, 10, 20);
+          ctx.fillRect(110, 90, 20, 10);
+          break;
+        case 3:
+          ctx.fillRect(100, 50, 30, 10);
+          ctx.fillRect(120, 60, 10, 30);
+          ctx.fillRect(100, 70, 20, 10);
+          ctx.fillRect(100, 90, 30, 10);
+          break;
+        default: break;
+      }
+
+      switch(scoreP2) {
+        case 0:
+          ctx.fillRect(670, 50, 30, 10);
+          ctx.fillRect(670, 60, 10, 30);
+          ctx.fillRect(690, 60, 10, 30);
+          ctx.fillRect(670, 90, 30, 10);
+          break;
+        case 1:
+          ctx.fillRect(680, 50, 20, 10);
+          ctx.fillRect(690, 60, 10, 40);
+          break;
+        case 2:
+          ctx.fillRect(670, 50, 30, 10);
+          ctx.fillRect(690, 60, 10, 20);
+          ctx.fillRect(670, 70, 20, 10);
+          ctx.fillRect(670, 80, 10, 20);
+          ctx.fillRect(680, 90, 20, 10);
+          break;
+        case 3:
+          ctx.fillRect(670, 50, 30, 10);
+          ctx.fillRect(690, 60, 10, 30);
+          ctx.fillRect(670, 70, 20, 10);
+          ctx.fillRect(670, 90, 30, 10);
+          break;
+        default: break;
+      }
+
+      if (gameOver && scoreP1 === 3) {
+        ctx.fillRect(290, 250, 20, 10);
+        ctx.fillRect(300, 260, 10, 40);
+
+        ctx.fillRect(320, 250, 30, 10);
+        ctx.fillRect(320, 260, 10, 40);
+        ctx.fillRect(340, 260, 10, 20);
+        ctx.fillRect(330, 270, 10, 10);
+
+        ctx.fillRect(400, 250, 10, 50);
+        ctx.fillRect(410, 270, 10, 20);
+        ctx.fillRect(420, 250, 10, 50);
+
+        ctx.fillRect(440, 250, 30, 10);
+        ctx.fillRect(450, 260, 10, 30);
+        ctx.fillRect(440, 290, 30, 10);
+        
+        ctx.fillRect(480, 250, 10, 50);
+        ctx.fillRect(490, 260, 10, 30);
+        ctx.fillRect(500, 250, 10, 50);
+      }
+
+      if (gameOver && scoreP2 === 3) {
+        ctx.fillRect(280, 250, 30, 10);
+        ctx.fillRect(300, 260, 10, 20);
+        ctx.fillRect(280, 270, 20, 10);
+        ctx.fillRect(280, 280, 10, 20);
+        ctx.fillRect(290, 290, 20, 10);
+
+        ctx.fillRect(320, 250, 30, 10);
+        ctx.fillRect(320, 260, 10, 40);
+        ctx.fillRect(340, 260, 10, 20);
+        ctx.fillRect(330, 270, 10, 10);
+
+        ctx.fillRect(400, 250, 10, 50);
+        ctx.fillRect(410, 270, 10, 20);
+        ctx.fillRect(420, 250, 10, 50);
+
+        ctx.fillRect(440, 250, 30, 10);
+        ctx.fillRect(450, 260, 10, 30);
+        ctx.fillRect(440, 290, 30, 10);
+        
+        ctx.fillRect(480, 250, 10, 50);
+        ctx.fillRect(490, 260, 10, 30);
+        ctx.fillRect(500, 250, 10, 50);
+      }
+    }
 
     // canvas.addEventListener('mousemove', (event) => {
     //   const mouseY = event.clientY - canvas.getBoundingClientRect().top;
@@ -72,6 +235,15 @@
       ctx.fillStyle = 'white';
       ctx.fillRect(0, leftPaddleY, paddleWidth, paddleHeight);
       ctx.fillRect(canvas.width - paddleWidth, rightPaddleY, paddleWidth, paddleHeight);
+
+      // Desenhar bola
+      if (gameStart) {
+        ballPos();
+        ctx.fillRect(ballX, ballY, ballSize, ballSize);
+      }
+
+      // Desenhar placares
+      drawScores();
 
       requestAnimationFrame(draw);
     }

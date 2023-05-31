@@ -9,10 +9,17 @@ app.use(express.static('public'));
 const players = [];
 
 io.on('connection', (socket) => {
-  console.log('a user connected');
+  console.log('user ' + socket.id + ' connected');
+  players.push(socket);
+
+  if (players.length % 2 === 0) {
+    players[0].join('room' + players.length / 2);
+    players[1].join('room' + players.length / 2);
+    io.in('room' + players.length / 2).emit('start', true);
+  }
 
   socket.on('disconnect', () => {
-    console.log('user disconnected');
+    console.log('user ' + socket.id + ' disconnected');
   });
 
   socket.on('updatePaddle', (data) => {
@@ -21,6 +28,7 @@ io.on('connection', (socket) => {
     } else if (data.player === 'right') {
       rightPaddleY = data.y;
     }
+
     socket.broadcast.emit('updatePaddle', data);
   });
   
